@@ -2,6 +2,8 @@
 
 Aplicação local para configurar os Logitech **MX Master 3S e 4** no Ubuntu. Interface em português de Portugal, representação 3D interativa, seleção dos botões e perfis guardados no computador.
 
+![Dashboard do MX Studio](data/dashboard.png)
+
 ## Abrir
 
 Na pasta do projeto:

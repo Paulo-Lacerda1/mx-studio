@@ -150,6 +150,9 @@ def main():
         parser.exit(1, f'Não foi possível abrir o servidor local na porta {args.port}: {error}\nSe a porta estiver ocupada, usa --port 48732.\n')
     url = f'http://127.0.0.1:{server.server_port}'
     print(f'MX Studio: {url}', flush=True)
+    # Detect the mouse while the browser starts: Solaar can take several seconds, and the
+    # first /api/bootstrap then waits on (or reuses) this result instead of starting from zero.
+    threading.Thread(target=status, daemon=True).start()
     if not args.no_open:
         chrome = shutil.which('google-chrome') or shutil.which('chromium')
         if chrome:

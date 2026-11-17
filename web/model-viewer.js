@@ -82,6 +82,9 @@ export class ModelViewer {
       iframe.setAttribute('allow', 'autoplay');
       this.container.append(iframe);
       entry = {iframe, anchors: model.anchors || {}, view: model.view};
+      // Resolved once the viewer shows the model at its resting camera (see whenReady).
+      entry.ready = new Promise(resolve => { entry.resolveReady = resolve; });
+      this.container.toggleAttribute?.('data-loading', true);
       this.models.set(model.id, entry);
       this.active = entry;
       entry.client = new window.Sketchfab(iframe);
@@ -104,7 +107,8 @@ export class ModelViewer {
                 Object.assign(entry.initial, {yaw: Math.atan2(vy, vx), pitch: Math.asin(vz / length)});
               }
               entry.camera = {...entry.initial};
-              if (entry.view && this.active === entry) this.render();
+              // Sketchfab may still be playing its intro camera move (free models ignore camera=0):
+              // wait for the camera to come to rest, then apply the start view and reveal.
               this.settleCamera(entry, api, camera);
               if (this.active === entry) { this.buildMarkers(); this.project(true); }
             });
@@ -112,7 +116,7 @@ export class ModelViewer {
           });
           api.start();
         },
-        error: error => console.warn('O visualizador 3D não respondeu.', error),
+        error: error => { console.warn('O visualizador 3D não respondeu.', error); entry.resolveReady(error); },
       });
     } else {
       this.active = entry;
@@ -123,21 +127,39 @@ export class ModelViewer {
     this.project(true);
   }
 
-  // Some models still animate the camera after viewerready. While the user has not moved it,
-  // re-read the resting camera until two readings match (at most ~3 s).
-  settleCamera(entry, api, previous, attempt = 0) {
-    if (typeof setTimeout !== 'function' || attempt > 20) return;
+  // Re-read the camera until it has been still for three readings 150 ms apart (at most ~9 s), then adopt that
+  // resting distance/target, apply the model's start direction and resolve whenReady().
+  settleCamera(entry, api, previous, attempt = 0, still = 0) {
+    const finish = () => {
+      if (entry.view && this.active === entry) this.render();
+      entry.readyAt = Date.now();
+      entry.resolveReady();
+    };
+    if (typeof setTimeout !== 'function' || attempt > 60) return finish();
     setTimeout(() => api.getCameraLookAt((error, camera) => {
-      if (error || !camera || !entry.initial) return;
+      if (error || !camera || !entry.initial) return finish();
       const moved = camera.position.some((v, i) => Math.abs(v - previous.position[i]) > 1e-6);
-      if (moved) return this.settleCamera(entry, api, camera, attempt + 1);
+      if (moved || still < 2) return this.settleCamera(entry, api, camera, attempt + 1, moved ? 0 : still + 1);
       const untouched = ['yaw', 'pitch', 'radius'].every(key => entry.camera[key] === entry.initial[key]);
-      const radius = Math.hypot(...camera.position.map((v, i) => v - camera.target[i]));
-      if (!untouched || !Number.isFinite(radius) || Math.abs(radius - entry.initial.radius) < 1e-9) return;
-      Object.assign(entry.initial, {target: [...camera.target], radius});
-      entry.camera = {...entry.initial};
-      if (this.active === entry) this.render();
+      const [x, y, z] = camera.position.map((v, i) => v - camera.target[i]);
+      const radius = Math.hypot(x, y, z);
+      if (untouched && Number.isFinite(radius) && radius > 0) {
+        Object.assign(entry.initial, {target: [...camera.target], radius});
+        if (!entry.view) Object.assign(entry.initial, {yaw: Math.atan2(y, x), pitch: Math.asin(z / radius)});
+        entry.camera = {...entry.initial};
+      }
+      finish();
     }), 150);
+  }
+
+  // Resolves when the active model is on screen; the loading cover is removed at the same time.
+  whenReady() {
+    const entry = this.active;
+    if (!entry) return Promise.resolve();
+    return entry.ready.then(result => {
+      if (this.active === entry) this.container.toggleAttribute?.('data-loading', false);
+      return result;
+    });
   }
 
   hide() {

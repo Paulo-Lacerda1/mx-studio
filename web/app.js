@@ -34,6 +34,7 @@ const SKETCHFAB = {
     id: 'e3f9cfe03c0e4aa79570cfd2402e65fd',
     title: 'Logitech MX Master 3S', author: 'Krystian', authorUrl: 'https://sketchfab.com/kporabik',
     pageUrl: 'https://sketchfab.com/3d-models/logitech-mx-master-3s-e3f9cfe03c0e4aa79570cfd2402e65fd',
+    topColor: '#303033', // scene background at the top edge (masks Sketchfab's title bar)
     view: [-3.37, 3.63, 0.71], // open from the front-left, thumb side towards the viewer
     // Button anchors in Sketchfab world space [x, y, z, nx, ny, nz], calibrated by ray-casting the model.
     anchors: {
@@ -47,6 +48,7 @@ const SKETCHFAB = {
     id: '3d2ad75a27cd4b7d96c86b34719bedaf',
     title: 'MX Master 4 for Mac · Space Black', author: 'JAllen2026', authorUrl: 'https://sketchfab.com/JAllen2026',
     pageUrl: 'https://sketchfab.com/3d-models/910-007575-mx-master-4-mac-space-black-3d2ad75a27cd4b7d96c86b34719bedaf',
+    topColor: '#dddddd', // scene background at the top edge (masks Sketchfab's title bar)
     view: [-3.37, 3.63, 0.71], // open from the front-left, thumb side towards the viewer
     anchors: {
       left: [-0.01944, 0.04359, 0.03061, -0.004, 0.449, 0.894], right: [0.0143, 0.04365, 0.02416, 0.294, 0.472, 0.831],
@@ -76,6 +78,7 @@ function setRealistic(on) {
   if (realistic && view.dataset.model !== model.id) {
     modelViewer ??= new ModelViewer(view);
     modelViewer.show(model, VIEWER_PARAMS);
+    if (document.getElementById('splash')?.classList.contains('done') ?? true) coverStage();
     modelViewer.select(selected);
     view.dataset.model = model.id;
   } else if (!realistic) {
@@ -83,6 +86,7 @@ function setRealistic(on) {
     delete view.dataset.model;
   }
   view.hidden = !realistic;
+  if (model?.topColor) view.style.setProperty('--viewer-top', model.topColor);
   $('#realistic-hotspots').hidden = !realistic;
   modelViewer?.setMarkers($('#realistic-hotspots'), buttons().map((button, index) => ({id: button.id, label: button.label, number: index + 1})), selectButton);
   const credit = $('#model-credit');
@@ -168,6 +172,7 @@ function renderModel() {
   const model = boot.models[profile.model];
   $('#model-name').textContent = model.label;
   $('#model-dims').textContent = DIMENSIONS[profile.model] || '';
+  storage.set('mx-studio-model', profile.model);
   $('#breadcrumb-model').textContent = model.label;
   $('#model-select').value = profile.model;
   $('#profile-name').value = profile.name;
@@ -396,9 +401,51 @@ function preset(kind){
  if(kind==='media'){profile.name='Multimédia';profile.buttons.gesture={action:'gestures',directions:{None:{action:'play'},Up:{action:'volume-up'},Down:{action:'volume-down'},Left:{action:'previous-track'},Right:{action:'next-track'}}};selected='gesture'}
  markDirty();renderModel();setTab('buttons');toast('Sugestão carregada. Podes ajustar antes de aplicar.');
 }
+// Loading screen: covers the app until the device data and the active 3D view are ready.
+const splash = {
+  step(text) { const el = document.getElementById('splash-text'); if (el) el.textContent = text; },
+  done() {
+    const el = document.getElementById('splash');
+    if (!el || el.classList.contains('done')) return;
+    el.classList.add('done');
+    document.documentElement.removeAttribute('aria-busy');
+    setTimeout(() => el.remove(), 400);
+  },
+};
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+// whenReady() resolves once Sketchfab's intro camera move (and its title bar) is over and the
+// start view is applied; give the viewer a few frames to draw it before revealing.
+const VIEWER_SETTLE_MS = 500;
+const stageReady = () => {
+  if (realistic && modelViewer) {
+    return modelViewer.whenReady().then(() => {
+      const since = Date.now() - (modelViewer.active?.readyAt ?? 0);
+      return wait(Math.max(350, VIEWER_SETTLE_MS - since));
+    });
+  }
+  return scene ? scene.whenReady() : Promise.resolve();
+};
+function coverStage() {
+  const wrap = $('#scene-wrap');
+  wrap.classList.add('stage-loading');
+  const done = () => wrap.classList.remove('stage-loading');
+  Promise.race([stageReady(), wait(15000)]).then(done, done);
+}
+
 async function initialize(){
  try{
-  boot=await api('bootstrap');const detected=boot.status.devices[0]?.model;profile=clone(boot.defaults[detected||'mx3s']);
+  splash.step('A detetar o rato…');
+  // Start the textured viewer for the last model while the mouse is being detected.
+  const lastModel = storage.get('mx-studio-model');
+  if (realistic && SKETCHFAB[lastModel]) {
+    modelViewer = new ModelViewer($('#realistic-view'));
+    $('#realistic-view').style.setProperty('--viewer-top', SKETCHFAB[lastModel].topColor);
+    modelViewer.show(SKETCHFAB[lastModel], VIEWER_PARAMS);
+    $('#realistic-view').dataset.model = SKETCHFAB[lastModel].id;
+    $('#realistic-view').hidden = false;
+  }
+  boot=await api('bootstrap');
+  splash.step('A carregar o modelo 3D…');const detected=boot.status.devices[0]?.model;profile=clone(boot.defaults[detected||'mx3s']);
   try {
     scene = new MouseScene($('#scene'), $('#hotspots'), selectButton);
     $('#scene-toolbar').hidden = false;
@@ -481,6 +528,9 @@ async function initialize(){
   $('#apply').onclick=async()=>{busy=true;updateApply();toast('A aguardar a autorização do Ubuntu…');try{const sent=clone(profile);const result=await api('apply',sent);boot.profiles=result.profiles;if(JSON.stringify(profile)===JSON.stringify(sent)){dirty=false;setProfileState('applied','Aplicado ao rato')}renderProfiles();toast(result.message);boot.status=await api('status');updateStatus()}catch(e){toast(e.message,true)}finally{busy=false;updateApply()}};
   window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}});
   setInterval(async()=>{if(document.hidden||busy)return;try{boot.status=await api('status');updateStatus()}catch{}},20000);
- }catch(e){$('#connection-banner').lastElementChild.textContent='Não foi possível iniciar a aplicação: '+e.message;toast(e.message,true)}
+  // Reveal only when the 3D view is ready (never wait more than 15 s, e.g. if Sketchfab is unreachable).
+  await Promise.race([stageReady().catch(() => {}), wait(15000)]);
+  splash.done();
+ }catch(e){$('#connection-banner').lastElementChild.textContent='Não foi possível iniciar a aplicação: '+e.message;toast(e.message,true);splash.done()}
 }
 initialize();

@@ -466,6 +466,7 @@ export class MouseScene {
     this.buttons = buttons;
     this.available = new Set(buttons.map(b => b.id));
     const token = this.token = (this.token || 0) + 1;
+    this.ready = new Promise(resolve => { this.resolveReady = resolve; });
     const url = REAL_MODELS[model];
     if (!url) return this.buildProcedural(model, buttons);
     this.container.dataset.loading = '';
@@ -708,6 +709,12 @@ export class MouseScene {
       this.markers.push({id: button.id, el, leader, position: world});
     });
     this.select(this.selected || 'gesture');
+    this.resolveReady?.();
+  }
+
+  // Resolves once the current model is built and drawn.
+  whenReady() {
+    return (this.ready || Promise.resolve()).then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   }
 
   prepareGestureMask(mesh) {
