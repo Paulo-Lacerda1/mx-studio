@@ -32,15 +32,19 @@ def status(force=False):
         return CACHE['value']
 
 
-def load_profiles():
+def stored_profiles():
     if not (DATA / 'profiles.json').exists():
         return []
-    return [validate_profile(p) for p in json.loads((DATA / 'profiles.json').read_text())]
+    return [validate_profile(p, allow_legacy=True) for p in json.loads((DATA / 'profiles.json').read_text())]
+
+
+def load_profiles():
+    return [p for p in stored_profiles() if p['model'] in MODELS]
 
 
 def save_profile(profile):
     with LOCK:
-        profiles = load_profiles()
+        profiles = stored_profiles()
         profiles = [p for p in profiles if (p['model'], p['name']) != (profile['model'], profile['name'])]
         profiles.append(profile)
         DATA.mkdir(parents=True, exist_ok=True)
@@ -48,7 +52,7 @@ def save_profile(profile):
         temp = target.with_suffix('.tmp')
         temp.write_text(json.dumps(profiles, ensure_ascii=False, indent=2) + '\n')
         temp.replace(target)
-    return profiles
+    return [p for p in profiles if p['model'] in MODELS]
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -59,7 +63,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header('Cache-Control', 'no-store')
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Referrer-Policy', 'no-referrer')
-        self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'")
+        self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-src https://sketchfab.com; object-src 'none'; frame-ancestors 'none'")
         super().end_headers()
 
     def local_request(self, mutation=False):

@@ -2,9 +2,12 @@
 import json
 
 MODELS = {
-    'mx3': {'label': 'MX Master 3', 'name': 'Wireless Mouse MX Master 3', 'dpiMax': 4000},
     'mx3s': {'label': 'MX Master 3S', 'name': 'MX Master 3S', 'dpiMax': 8000},
     'mx4': {'label': 'MX Master 4', 'name': 'MX Master 4', 'dpiMax': 8000},
+}
+# Only used to retain existing saved/applied profiles after removing MX Master 3.
+LEGACY_MODELS = {
+    'mx3': {'label': 'MX Master 3', 'name': 'Wireless Mouse MX Master 3', 'dpiMax': 4000},
 }
 BUTTONS = [
     {'id': 'left', 'label': 'Clique esquerdo', 'native': True},
@@ -96,8 +99,9 @@ def validate_action(value, gestures=True):
     return result
 
 
-def validate_profile(value):
-    if not isinstance(value, dict) or not isinstance(value.get('model'), str) or value.get('model') not in MODELS:
+def validate_profile(value, *, allow_legacy=False):
+    models = {**LEGACY_MODELS, **MODELS} if allow_legacy else MODELS
+    if not isinstance(value, dict) or not isinstance(value.get('model'), str) or value.get('model') not in models:
         raise ValueError('Modelo de rato inválido.')
     result = default_profile(value['model'])
     name = value.get('name', 'Pessoal')
@@ -110,7 +114,7 @@ def validate_profile(value):
         raise ValueError('Um dos botões não está disponível neste modelo.')
     result['buttons'] = {b: validate_action(a) for b, a in buttons.items()}
     dpi = value.get('dpi')
-    if dpi is not None and (type(dpi) is not int or not 200 <= dpi <= MODELS[value['model']]['dpiMax'] or dpi % 50):
+    if dpi is not None and (type(dpi) is not int or not 200 <= dpi <= models[value['model']]['dpiMax'] or dpi % 50):
         raise ValueError('DPI fora do intervalo do rato (passos de 50).')
     result['dpi'] = dpi
     scroll = value.get('scroll', {})
@@ -146,9 +150,10 @@ def action_config(spec):
     return 'type: "Keypress"; keys: ' + json.dumps(keys) + ';'
 
 
-def device_config(profile):
-    p = validate_profile(profile)
-    parts = ['  {', f'    name: {json.dumps(MODELS[p["model"]]["name"])};']
+def device_config(profile, *, allow_legacy=False):
+    p = validate_profile(profile, allow_legacy=allow_legacy)
+    models = {**LEGACY_MODELS, **MODELS} if allow_legacy else MODELS
+    parts = ['  {', f'    name: {json.dumps(models[p["model"]]["name"])};']
     if p['dpi'] is not None:
         parts.append(f'    dpi: {p["dpi"]};')
     s = p['scroll']
@@ -176,7 +181,7 @@ def device_config(profile):
 MARKER = '// Managed by MX Studio. Backups: /var/lib/mx-studio/backups\n'
 
 
-def compile_config(profiles):
+def compile_config(profiles, *, allow_legacy=False):
     if not profiles:
         raise ValueError('Não há perfis para aplicar.')
-    return MARKER + 'devices: (\n' + ',\n'.join(device_config(p) for p in profiles) + '\n);\n'
+    return MARKER + 'devices: (\n' + ',\n'.join(device_config(p, allow_legacy=allow_legacy) for p in profiles) + '\n);\n'

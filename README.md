@@ -1,6 +1,6 @@
 # MX Studio
 
-Aplicação local para configurar os Logitech **MX Master 3, 3S e 4** no Ubuntu. Interface em português de Portugal, representação 3D interativa, seleção dos botões e perfis guardados no computador.
+Aplicação local para configurar os Logitech **MX Master 3S e 4** no Ubuntu. Interface em português de Portugal, representação 3D interativa, seleção dos botões e perfis guardados no computador.
 
 ## Abrir
 
@@ -10,7 +10,7 @@ Na pasta do projeto:
 bash start.sh
 ```
 
-É necessário Python 3.10 ou posterior. O 3D já está incluído: **não é necessário instalar pacotes npm nem ter Internet para abrir a aplicação**.
+É necessário Python 3.10 ou posterior. Os visualizadores dos modelos Sketchfab abrem por predefinição quando há ligação à Internet. A vista **Local** já está incluída: **não é necessário instalar pacotes npm nem ter Internet para abrir e configurar a aplicação**.
 
 O Chrome/Chromium abre uma janela de aplicação. Quando não está instalado, abre o navegador predefinido. O servidor fica a correr no terminal; termina-o com `Ctrl+C`. Fechar a janela não termina o servidor.
 
@@ -18,7 +18,7 @@ Também podes executar `python3 app.py --no-open` e abrir `http://127.0.0.1:4873
 
 ## Aplicar configurações no Ubuntu
 
-Para MX Master 3 / 3S:
+Para MX Master 3S:
 
 ```bash
 sudo apt install logiops solaar
@@ -37,7 +37,7 @@ A instalação copia apenas o auxiliar de aplicação e o validador para uma pas
 | Área | Disponível |
 | --- | --- |
 | Deteção | Linux HID e consulta ao Solaar; Bluetooth e recetor, quando o modelo é identificável |
-| 3D | Modelo procedural às medidas reais (3/3S: 124,9 × 84,3 × 51 mm; 4: 128,2 × 88,4 × 50,8 mm), materiais PBR, acabamento Grafite ou Cinza claro, rotação, zoom, vistas topo/lado e seleção de botões no próprio modelo |
+| 3D | Vista Realista com os modelos texturizados do 3S e do 4 for Mac Space Black nos visualizadores oficiais Sketchfab, com rotação e zoom; vista Local com seleção de botões, vistas topo/lado e acabamentos Grafite ou Cinza claro |
 | Botões | Clique da roda, superior, recuar, avançar, gestos; apoio do polegar adicional no MX Master 4 |
 | Ações | Captura de ecrã, janelas, áreas de trabalho, edição, separadores, multimédia e atalhos personalizados |
 | Gestos | Clique sem movimento e quatro direções; ações ao soltar |
@@ -54,10 +54,13 @@ A ação «Captura de ecrã» lê o atalho atual `org.gnome.shell.keybindings sh
 ## Limites e comportamento
 
 - A pré-visualização nunca é apresentada como um rato ligado. Um recetor genérico não chega para identificar o modelo. Uma bateria desconhecida não é estimada.
-- Os três modelos têm mapas de controlo; o MX Master 4 inclui o CID `0x01a0`. O corpo 3D é reconstruído a partir das medidas publicadas e de fotografias; não é um modelo CAD oficial. 3 e 3S partilham a geometria; o MX Master 4 tem o botão de gestos à frente de recuar/avançar e o painel háptico no apoio do polegar.
+- O seletor e a deteção incluem apenas MX Master 3S e 4. Os perfis antigos do MX Master 3 deixam de aparecer, mas são preservados no disco e na configuração aplicada existente.
+- Os modelos Sketchfab indicados têm a transferência desativada. A vista **Realista** usa os visualizadores oficiais: [MX Master 3S por Krystian](https://sketchfab.com/3d-models/logitech-mx-master-3s-e3f9cfe03c0e4aa79570cfd2402e65fd) e [MX Master 4 for Mac Space Black por JAllen2026](https://sketchfab.com/3d-models/910-007575-mx-master-4-mac-space-black-3d2ad75a27cd4b7d96c86b34719bedaf). Um crédito discreto aparece sob o modelo. Os parâmetros oficiais pedem para ocultar Help, dicas, menus, anotações, controlos e marca do visualizador. Segundo a [documentação Sketchfab](https://sketchfab.com/developers/viewer/initialization), várias destas opções exigem um plano Premium do proprietário do modelo e podem ser ignoradas quando não está disponível. Nesta vista, seleciona os botões na lista. Se o visualizador não carregar, escolhe **Local**.
+- A vista Local do 3S usa o CAD já incluído (`web/models/mx3s.glb`, convertido de STEP com `tools/step2glb.py`; peças separadas por `tools/mx3s_rules.py`). O MX Master 4 usa um modelo procedural. Estas vistas permitem selecionar os botões no próprio modelo e funcionam sem Internet. Se o GLB do 3S não carregar, a aplicação usa o modelo procedural. O MX Master 4 inclui o CID `0x01a0`.
+- Na vista Realista, o iframe é `inert`, não recebe cliques nem foco de teclado e usa `sandbox` sem permissões de popups, navegação da página principal, formulários, diálogos ou downloads. A aplicação controla apenas a câmara através do SDK oficial Sketchfab 1.12.1, incluído em `web/vendor`. Arrastar roda o modelo, a roda ou o gesto de pinça fazem zoom; as setas, `+`, `-` e `Home` permitem usar o teclado. O mini crédito é texto sem links. Estes bloqueios impedem interações com a interface externa; não removem elementos visuais cuja ocultação o Sketchfab recuse.
 - Não estão implementados feedback háptico, Actions Ring, Logitech Flow, perfis automáticos por aplicação ou escrita na memória interna do rato.
 - As capacidades de cada botão dependem do firmware e do LogiOps. Esta versão usa os mapas documentados, não interroga todas as capacidades HID++ em tempo real.
-- Os nomes usados pelo controlador são `Wireless Mouse MX Master 3`, `MX Master 3S` e `MX Master 4`. Variantes com outro nome de dispositivo, incluindo algumas versões «for Mac», podem precisar de um nome adicional no compilador.
+- Os nomes usados pelo controlador são `MX Master 3S` e `MX Master 4`. Variantes com outro nome de dispositivo, incluindo algumas versões «for Mac», podem precisar de um nome adicional no compilador.
 - Os perfis aplicam-se por modelo. Dois ratos com o mesmo nome recebem a mesma configuração. Os perfis guardados não são aplicados automaticamente ao abrir a interface.
 - Não remapeies os mesmos controlos simultaneamente com regras do Solaar e do LogiOps.
 - O estado «aplicado» confirma a escrita da configuração e o arranque do serviço; não confirma fisicamente a resposta de cada botão. Verifica-os no rato.
@@ -84,13 +87,15 @@ Confirma que o rato está ligado e acordado, e que as regras udev do Solaar/Logi
 python3 -m unittest discover -s tests -v
 node --check web/app.js
 node --check web/scene.js
+node --check web/model-viewer.js
+npm run test:viewer
 ```
 
 Python usa apenas a biblioteca padrão. A interface usa módulos JavaScript e Three.js 0.180.0, incluído em `web/vendor` com a licença MIT original. `package.json` documenta a dependência; `node_modules` não é necessário para executar a aplicação.
 
 Os testes cobrem os modelos, CIDs, DPI, gestos, teclas permitidas, deteção offline/Bluetooth, persistência, exportação, proteção da API e bloqueio de aplicação em pré-visualização. A API é exercitada através do handler HTTP real, com transporte em memória, sem abrir sockets.
 
-**Validação nesta entrega:** testes automáticos e sintaxe verificados; configuração analisada com a biblioteca libconfig. Não foi possível fazer inspeção visual no navegador nem testar o equipamento: o ambiente de execução bloqueia sockets locais e acesso ao dispositivo. É necessário validar o funcionamento físico no Ubuntu fora desse ambiente.
+**Validação desta alteração:** 43 testes Python passaram, assim como as verificações de sintaxe JavaScript. O controlador da interface foi exercitado com um DOM simulado para verificar a troca dos modelos e créditos, a vista Local, a perda de Internet e a ausência de WebGL. A API também respondeu através do servidor local. A inspeção visual ficou por fazer porque o navegador de inspeção está indisponível; o funcionamento físico dos botões não foi testado.
 
 ## Referências
 

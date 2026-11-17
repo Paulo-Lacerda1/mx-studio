@@ -3,6 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "description": "Configuração local dos Logitech MX Master no Ubuntu",
-  "scripts": {"start": "python3 app.py", "test": "python3 -m unittest discover -s tests -v"},
+  "scripts": {"start": "python3 app.py", "test": "python3 -m unittest discover -s tests -v", "test:viewer": "node --experimental-vm-modules --test tests/model_viewer.test.mjs"},
   "dependencies": {"three": "0.180.0"}
 }

@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from './vendor/OrbitControls.js';
 import { RoomEnvironment } from './vendor/RoomEnvironment.js';
+import { GLTFLoader } from './vendor/GLTFLoader.js';
 
 /*
  * Procedural MX Master model, built in millimetres from the published dimensions:
- *   MX Master 3 / 3S: 124.9 × 84.3 × 51 mm
+ *   MX Master 3S:     124.9 × 84.3 × 51 mm
  *   MX Master 4:      128.2 × 88.4 × 50.8 mm
  * Coordinates: x → right, y → up, z → back (the front of the mouse is at negative z).
  * The shell is a loft of superellipse sections over the real top-view outline. The
@@ -26,6 +27,39 @@ const FINISHES = {
     thumbWheel: 0x9a9c9a, steel: 0xaeb3b8, shift: 0x7d7e79, logo: '#8c8d87', panel: 0xa3a39d,
   },
 };
+
+/*
+ * Real CAD models, converted from STEP with tools/step2glb.py. Each node is a named part
+ * (left, right, middle, shift, back, forward, gesture, thumbwheel, body, base, led, logo, accent),
+ * in millimetres with the same axes as the procedural model.
+ */
+const REAL_MODELS = {mx3s: 'models/mx3s.glb'};
+const REAL_PARTS = {
+  graphite: {
+    body: [0x3a3d40, .62], base: [0x1c1e20, .8], left: [0x3a3d40, .58], right: [0x3a3d40, .58], gesture: [0x34373a, .7],
+    middle: [0xb4b9bf, .28, 1], thumbwheel: [0xa3a8ad, .38, .6], back: [0x2a2c2f, .42], forward: [0x2a2c2f, .42],
+    shift: [0x2a2c2f, .38], logo: [0x8d9196, .45], accent: [0xe8862a, .5],
+  },
+  pale: {
+    body: [0xb4b4ae, .6], base: [0x86877f, .8], left: [0xb4b4ae, .56], right: [0xb4b4ae, .56], gesture: [0xa9a9a3, .68],
+    middle: [0xb9bec3, .28, 1], thumbwheel: [0x9fa3a6, .38, .6], back: [0x9a9a95, .42], forward: [0x9a9a95, .42],
+    shift: [0x8f918e, .38], logo: [0x83847f, .45], accent: [0xe8862a, .5],
+  },
+};
+// The MX 3/3S gesture button is the thumb rest itself; it is drawn as a soft mask on the body.
+function gestureMask(x, y, z) {
+  return smooth(-21.5, -25.5, x) * smooth(23.5, 20, y) * smooth(8.5, 11, y) * smooth(-23, -18, z) * smooth(41, 36, z);
+}
+const SELECTABLE = new Set(['left', 'right', 'middle', 'shift', 'back', 'forward', 'gesture', 'thumb']);
+const gltfCache = new Map();
+function loadModel(url) {
+  if (!gltfCache.has(url)) {
+    const request = new GLTFLoader().loadAsync(url).then(gltf => gltf.scene);
+    request.catch(() => gltfCache.delete(url));
+    gltfCache.set(url, request);
+  }
+  return gltfCache.get(url);
+}
 
 const lerp = (a, b, t) => a + (b - a) * t;
 const clamp01 = t => Math.min(1, Math.max(0, t));
@@ -369,6 +403,10 @@ export class MouseScene {
       const region = shellRegion(local.x, local.z, value);
       return this.available.has(region) ? region : null;
     }
+    if (hit.object === this.gestureBody) {
+      const p = hit.object.worldToLocal(hit.point.clone());
+      return gestureMask(p.x, p.y, p.z) > .5 && this.available.has('gesture') ? 'gesture' : null;
+    }
     const id = hit.object.userData.button;
     return id && this.available.has(id) ? id : null;
   }
@@ -418,6 +456,7 @@ export class MouseScene {
     for (const item of this.disposables) item.dispose();
     this.disposables = [];
     if (this.model) this.group.remove(this.model);
+    this.model = null; this.shell = null; this.shellUniforms = null; this.gestureBody = null;
     this.targets = {}; this.markers = []; this.overlays.replaceChildren();
   }
 
@@ -426,6 +465,76 @@ export class MouseScene {
     this.modelId = model;
     this.buttons = buttons;
     this.available = new Set(buttons.map(b => b.id));
+    const token = this.token = (this.token || 0) + 1;
+    const url = REAL_MODELS[model];
+    if (!url) return this.buildProcedural(model, buttons);
+    this.container.dataset.loading = '';
+    this.requestRender();
+    loadModel(url)
+      .then(source => { if (token === this.token) this.buildReal(source, buttons); })
+      .catch(error => {
+        console.warn('Modelo CAD indisponível, a usar o modelo procedural.', error);
+        if (token === this.token) this.buildProcedural(model, buttons);
+      })
+      .finally(() => { if (token === this.token) delete this.container.dataset.loading; });
+  }
+
+  buildReal(source, buttons) {
+    const finish = REAL_PARTS[this.finish];
+    this.model = new THREE.Group();
+    this.group.add(this.model);
+    const parts = {};
+    for (const node of source.children) {
+      if (!node.isMesh) continue;
+      const mesh = node.clone();
+      const name = node.name;
+      if (name === 'led') {
+        mesh.material = new THREE.MeshStandardMaterial({color: 0x7dffb0, emissive: 0x3ee07f, emissiveIntensity: 1.1});
+        this.disposables.push(mesh.material);
+      } else {
+        const [color, roughness, metalness = 0] = finish[name] || finish.body;
+        mesh.material = this.physical(color, {roughness, metalness, clearcoat: metalness ? .2 : 0});
+      }
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      if (name === 'body') this.prepareGestureMask(mesh);
+      if (SELECTABLE.has(name)) { mesh.userData.button = name; (this.targets[name] ??= []).push(mesh); }
+      this.model.add(mesh);
+      parts[name] = mesh;
+    }
+    this.model.updateMatrixWorld(true);
+
+    // Anchor each callout on the part itself: cast from above for top controls, from the left for side ones.
+    const anchor = (name, side) => {
+      const mesh = parts[name];
+      if (!mesh) return null;
+      mesh.geometry.computeBoundingBox();
+      const box = mesh.geometry.boundingBox, centre = box.getCenter(new THREE.Vector3());
+      const origin = side ? new THREE.Vector3(-300, centre.y, centre.z) : new THREE.Vector3(centre.x, 300, centre.z);
+      this.raycaster.set(origin, side ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, -1, 0));
+      const hit = this.raycaster.intersectObject(mesh, false)[0];
+      if (!hit) return side ? new THREE.Vector3(box.min.x - 2, centre.y, centre.z) : new THREE.Vector3(centre.x, box.max.y + 2, centre.z);
+      return hit.point.clone().addScaledVector(hit.face.normal, 2.5);
+    };
+    const plate = name => {
+      const box = parts[name]?.geometry.boundingBox;
+      if (!box) return null;
+      const x = (box.min.x + box.max.x) / 2, z = lerp(box.min.z, box.max.z, .32);
+      this.raycaster.set(new THREE.Vector3(x, 300, z), new THREE.Vector3(0, -1, 0));
+      const hit = this.raycaster.intersectObject(parts[name], false)[0];
+      return hit ? hit.point.clone().addScaledVector(hit.face.normal, 2.5) : anchor(name);
+    };
+    const restHit = parts.body && (this.raycaster.set(new THREE.Vector3(-300, 16, 6), new THREE.Vector3(1, 0, 0)), this.raycaster.intersectObject(parts.body, false)[0]);
+    const points = {
+      middle: anchor('middle'), shift: anchor('shift'),
+      back: anchor('back', true), forward: anchor('forward', true),
+      gesture: restHit ? restHit.point.clone().addScaledVector(restHit.face.normal, 2.5) : null,
+    };
+    points.left = plate('left');
+    points.right = plate('right');
+    this.finishBuild(buttons, points, [1, 1, 1], 0);
+  }
+
+  buildProcedural(model, buttons) {
     const mx4 = model === 'mx4';
     const f = FINISHES[this.finish];
     this.model = new THREE.Group();
@@ -572,12 +681,16 @@ export class MouseScene {
       thumb: new THREE.Vector3(-37, restHeight(-37, 21, .3) + 3, 21),
     };
     // Real proportions per model.
-    const scale = mx4 ? [88.4 / 84.3, 50.8 / 51, 128.2 / 124.9] : [1, 1, 1];
+    this.finishBuild(buttons, points, mx4 ? [88.4 / 84.3, 50.8 / 51, 128.2 / 124.9] : [1, 1, 1], .05);
+  }
+
+  finishBuild(buttons, points, scale, offsetX) {
     this.model.scale.set(scale[0] * MM, scale[1] * MM, scale[2] * MM);
-    this.model.position.set(.05, 0, 0);
+    this.model.position.set(offsetX, 0, 0);
     this.model.updateMatrixWorld(true);
 
     buttons.forEach((button, index) => {
+      if (!points[button.id]) return;
       const el = document.createElement('button');
       const leader = document.createElement('span');
       leader.className = 'hotspot-leader';
@@ -595,6 +708,34 @@ export class MouseScene {
       this.markers.push({id: button.id, el, leader, position: world});
     });
     this.select(this.selected || 'gesture');
+  }
+
+  prepareGestureMask(mesh) {
+    const geometry = mesh.geometry;
+    if (!geometry.userData.mask) {
+      const pos = geometry.attributes.position, mask = new Float32Array(pos.count);
+      for (let i = 0; i < pos.count; i++) mask[i] = gestureMask(pos.getX(i), pos.getY(i), pos.getZ(i));
+      geometry.userData.mask = mask;
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(pos.count * 3).fill(1), 3));
+    }
+    mesh.material.vertexColors = true;
+    this.gestureBody = mesh;
+    this.gestureTint = -1;
+  }
+
+  paintGesture() {
+    const mesh = this.gestureBody;
+    if (!mesh) return;
+    const amount = this.selected === 'gesture' ? 1 : this.hovered === 'gesture' ? .45 : 0;
+    if (amount === this.gestureTint) return;
+    this.gestureTint = amount;
+    const mask = mesh.geometry.userData.mask, color = mesh.geometry.attributes.color;
+    const tint = [.62, .74, 2.1];
+    for (let i = 0; i < mask.length; i++) {
+      const m = mask[i] * amount;
+      color.setXYZ(i, 1 + (tint[0] - 1) * m, 1 + (tint[1] - 1) * m, 1 + (tint[2] - 1) * m);
+    }
+    color.needsUpdate = true;
   }
 
   setFinish(name) {
@@ -626,6 +767,7 @@ export class MouseScene {
         mesh.material.emissiveIntensity = glow;
       }
     }
+    this.paintGesture();
     for (const marker of this.markers) marker.el.classList.toggle('hovered', marker.id === this.hovered);
     this.requestRender();
   }

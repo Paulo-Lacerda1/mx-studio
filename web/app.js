@@ -1,13 +1,111 @@
 import { MouseScene } from './scene.js';
+import { ModelViewer } from './model-viewer.js';
 
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const paths={chevron:'m9 18 6-6-6-6',close:'m6 6 12 12 M18 6 6 18',mouse:'M9 3h6a5 5 0 0 1 5 5v8a8 8 0 0 1-16 0V8a5 5 0 0 1 5-5Z M12 3v6',layers:'m12 3 9 5-9 5-9-5 9-5Z M3 12l9 5 9-5 M3 16l9 5 9-5',settings:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z M10 3h4l1 3 3 1 3 3v4l-3 1-1 3-3 3h-4l-1-3-3-1-3-3v-4l3-1 1-3 3-3Z',refresh:'M20 7v5h-5 M4 17v-5h5 M6 6a8 8 0 0 1 13 3 M5 15a8 8 0 0 0 13 3',check:'m5 12 4 4L19 6',info:'M12 16v-4 M12 8h.01 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0',rotate:'M3 8h5V3 M4 8a9 9 0 1 1-1 8',download:'M12 3v12 m-5-5 5 5 5-5 M4 16v5h16v-5',save:'M4 3h13l4 4v14H3V3h1Z M7 3v6h9V3 M7 21v-8h10v8',capture:'M8 3H3v5 M16 3h5v5 M21 16v5h-5 M8 21H3v-5 M7 7h10v10H7V7Z',windows:'M3 4h8v7H3V4Z M14 4h7v7h-7V4Z M3 14h8v7H3v-7Z M14 14h7v7h-7v-7Z',music:'M9 18V5l11-2v13 M9 5l11-2 M9 18a3 3 0 1 1-3-3h3 M20 16a3 3 0 1 1-3-3h3'};
+const paths={chevron:'m9 18 6-6-6-6',close:'m6 6 12 12 M18 6 6 18',mouse:'M9 3h6a5 5 0 0 1 5 5v8a8 8 0 0 1-16 0V8a5 5 0 0 1 5-5Z M12 3v6',layers:'m12 3 9 5-9 5-9-5 9-5Z M3 12l9 5 9-5 M3 16l9 5 9-5',settings:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z M10 3h4l1 3 3 1 3 3v4l-3 1-1 3-3 3h-4l-1-3-3-1-3-3v-4l3-1 1-3 3-3Z',refresh:'M20 7v5h-5 M4 17v-5h5 M6 6a8 8 0 0 1 13 3 M5 15a8 8 0 0 0 13 3',check:'m5 12 4 4L19 6',info:'M12 16v-4 M12 8h.01 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0',rotate:'M3 8h5V3 M4 8a9 9 0 1 1-1 8',download:'M12 3v12 m-5-5 5 5 5-5 M4 16v5h16v-5',save:'M4 3h13l4 4v14H3V3h1Z M7 3v6h9V3 M7 21v-8h10v8',capture:'M8 3H3v5 M16 3h5v5 M21 16v5h-5 M8 21H3v-5 M7 7h10v10H7V7Z',windows:'M3 4h8v7H3V4Z M14 4h7v7h-7V4Z M3 14h8v7H3v-7Z M14 14h7v7h-7v-7Z',music:'M9 18V5l11-2v13 M9 5l11-2 M9 18a3 3 0 1 1-3-3h3 M20 16a3 3 0 1 1-3-3h3',sun:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z M12 2v2 M12 20v2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M2 12h2 M20 12h2 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4',moon:'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z'};
 function icons(root=document){root.querySelectorAll('[data-icon]').forEach(e=>{e.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[e.dataset.icon]||paths.mouse}"/></svg>`})}
 icons();
+// Theme: dark by default; the choice is remembered on this computer.
+function applyTheme(theme) {
+  const light = theme === 'light';
+  if (light) document.documentElement.dataset.theme = 'light';
+  else delete document.documentElement.dataset.theme;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', light ? '#e7e8e4' : '#111315');
+  const toggle = document.getElementById('theme-toggle');
+  const label = light ? 'Mudar para tema escuro' : 'Mudar para tema claro';
+  toggle.title = label;
+  toggle.setAttribute('aria-label', label);
+  toggle.firstElementChild.dataset.icon = light ? 'moon' : 'sun';
+  icons(toggle);
+}
+applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+document.getElementById('theme-toggle').onclick = () => {
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  applyTheme(next);
+  try { localStorage.setItem('mx-studio-theme', next); } catch { /* optional */ }
+};
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clone=v=>structuredClone(v);
 // Published dimensions (length × width × height) and weight.
-const DIMENSIONS = {mx3: '124,9 × 84,3 × 51 mm, 141 g', mx3s: '124,9 × 84,3 × 51 mm, 141 g', mx4: '128,2 × 88,4 × 50,8 mm, 150 g'};
+const DIMENSIONS = {mx3s: '124,9 × 84,3 × 51 mm, 141 g', mx4: '128,2 × 88,4 × 50,8 mm, 150 g'};
+// Official embeds: these models are not available for download on Sketchfab.
+const SKETCHFAB = {
+  mx3s: {
+    id: 'e3f9cfe03c0e4aa79570cfd2402e65fd',
+    title: 'Logitech MX Master 3S', author: 'Krystian', authorUrl: 'https://sketchfab.com/kporabik',
+    pageUrl: 'https://sketchfab.com/3d-models/logitech-mx-master-3s-e3f9cfe03c0e4aa79570cfd2402e65fd',
+    view: [-3.37, 3.63, 0.71], // open from the front-left, thumb side towards the viewer
+    // Button anchors in Sketchfab world space [x, y, z, nx, ny, nz], calibrated by ray-casting the model.
+    anchors: {
+      left: [-0.0168, 0.03967, 0.03312, 0.024, 0.504, 0.864], right: [0.01529, 0.03952, 0.02696, 0.307, 0.445, 0.841],
+      middle: [0.0004, 0.04308, 0.03302, 0, 0.7, 0.714], shift: [0.00089, 0.01636, 0.04358, 0.232, 0.339, 0.911],
+      forward: [-0.03496, 0.00381, 0.02896, -0.999, -0.008, 0.033], back: [-0.03434, -0.00825, 0.03411, -0.943, 0.042, 0.33],
+      gesture: [-0.03381, -0.00653, 0.0165, -0.941, -0.053, 0.336],
+    },
+  },
+  mx4: {
+    id: '3d2ad75a27cd4b7d96c86b34719bedaf',
+    title: 'MX Master 4 for Mac · Space Black', author: 'JAllen2026', authorUrl: 'https://sketchfab.com/JAllen2026',
+    pageUrl: 'https://sketchfab.com/3d-models/910-007575-mx-master-4-mac-space-black-3d2ad75a27cd4b7d96c86b34719bedaf',
+    view: [-3.37, 3.63, 0.71], // open from the front-left, thumb side towards the viewer
+    anchors: {
+      left: [-0.01944, 0.04359, 0.03061, -0.004, 0.449, 0.894], right: [0.0143, 0.04365, 0.02416, 0.294, 0.472, 0.831],
+      middle: [-0.002, 0.035, 0.0365, 0, 0, 1], shift: [-0.00119, 0.02015, 0.03737, 0.081, 0.566, 0.821],
+      gesture: [-0.03231, 0.01949, 0.02676, -0.966, 0.1, 0.239], forward: [-0.03357, 0.00752, 0.02938, -0.875, 0.363, 0.319],
+      back: [-0.03419, -0.00618, 0.03298, -0.998, -0.066, 0.016], thumb: [-0.03381, 0.0041, 0.01582, -0.9, 0.002, 0.435],
+    },
+  },
+};
+let realistic = navigator.onLine;
+let modelViewer;
+// Some UI options require the model owner's Premium/Enterprise plan.
+const VIEWER_PARAMS = new URLSearchParams({
+  autostart: 1, preload: 1, dnt: 1, ui_theme: 'dark',
+  camera: 0, // skip the intro camera animation: the viewer reads the resting camera on viewerready
+  ui_controls: 0, ui_general_controls: 0, ui_help: 0, ui_hint: 0,
+  ui_infos: 0, ui_settings: 0, ui_inspector: 0, ui_fullscreen: 0,
+  ui_annotations: 0, ui_animations: 0, ui_vr: 0, ui_ar: 0,
+  ui_ar_help: 0, ui_ar_qrcode: 0, ui_start: 0, ui_stop: 0,
+  ui_loading: 0, ui_watermark: 0, ui_watermark_link: 0,
+}).toString();
+function setRealistic(on) {
+  const model = SKETCHFAB[profile.model];
+  realistic = Boolean(on && model);
+  const view = $('#realistic-view');
+  view.hidden = !realistic;
+  if (realistic && view.dataset.model !== model.id) {
+    modelViewer ??= new ModelViewer(view);
+    modelViewer.show(model, VIEWER_PARAMS);
+    modelViewer.select(selected);
+    view.dataset.model = model.id;
+  } else if (!realistic) {
+    modelViewer?.hide();
+    delete view.dataset.model;
+  }
+  view.hidden = !realistic;
+  $('#realistic-hotspots').hidden = !realistic;
+  modelViewer?.setMarkers($('#realistic-hotspots'), buttons().map((button, index) => ({id: button.id, label: button.label, number: index + 1})), selectButton);
+  const credit = $('#model-credit');
+  credit.hidden = !realistic;
+  credit.textContent = realistic
+    ? `3D: ${model.author} · Sketchfab`
+    : '';
+  $('#scene-wrap').classList.toggle('is-realistic', realistic);
+  $('#scene').hidden = realistic;
+  $('#hotspots').hidden = realistic;
+  $('#view-realistic').hidden = !model;
+  $('#view-realistic').setAttribute('aria-pressed', realistic);
+  $('#view-realistic').classList.toggle('active', realistic);
+  $('#scene-toolbar').hidden = false;
+  for (const name of ['perspective', 'top', 'side', 'reset']) {
+    $('#view-' + name).hidden = realistic && name !== 'reset';
+    $('#view-' + name).disabled = !realistic && !scene;
+  }
+  $('#view-local').setAttribute('aria-pressed', !realistic);
+  $('#view-local').classList.toggle('active', !realistic);
+  updateSelection();
+  if (!realistic) scene?.resize();
+}
 const storage = {
   get(key) { try { return localStorage.getItem(key); } catch { return null; } },
   set(key, value) { try { localStorage.setItem(key, value); } catch { /* optional */ } },
@@ -74,6 +172,7 @@ function renderModel() {
   $('#model-select').value = profile.model;
   $('#profile-name').value = profile.name;
   scene?.build(profile.model, buttons());
+  setRealistic(realistic);
   updateSelection();
   renderButtons();
   renderEditor();
@@ -86,7 +185,8 @@ function updateSelection() {
   const index = buttons().findIndex(button => button.id === selected);
   scene?.select(selected);
   const selection = $('#scene-selection');
-  selection.hidden = !scene || index === -1;
+  modelViewer?.select(selected);
+  selection.hidden = (!scene && !realistic) || index === -1;
   if (!selection.hidden) {
     $('#scene-number').textContent = index + 1;
     $('#scene-label').textContent = buttons()[index].label;
@@ -286,7 +386,7 @@ function renderProfiles(){
 }
 function renderSystem(){
  const s=boot.status;if(!s)return;
- $('#system-content').innerHTML=`<div class="system-grid"><article class="system-card"><h2>Estado da ligação</h2>${[['Sessão',s.session],['Ambiente',s.desktop],['Ratos detetados',s.devices.length?s.devices.map(d=>d.name).join(', '):'Nenhum'],['Recetor Logitech',s.receiver?'Encontrado':'Não encontrado'],['Solaar',s.solaar?'Instalado':'Não instalado'],['LogiOps',s.logiops?'Instalado':'Não instalado'],['Serviço logid',s.serviceActive?'Ativo':'Inativo'],['Integração MX Studio',s.helperInstalled?'Instalada':'Por instalar']].map(([a,b])=>`<div class="system-line"><span>${a}</span><b>${esc(b)}</b></div>`).join('')}</article><article class="system-card"><h2>Preparar a aplicação</h2><p>A interface funciona sem privilégios. Para aplicar configurações, é necessário instalar o LogiOps e a integração local. O Ubuntu pede a tua palavra-passe ao aplicar.</p><p>Para MX Master 3 / 3S, no Ubuntu:</p><pre>sudo apt install logiops solaar\nsudo bash scripts/install-system.sh</pre><p>Executa o segundo comando na pasta deste projeto. Para MX Master 4, usa uma versão recente do <a href="https://github.com/PixlOne/logiops" target="_blank" rel="noreferrer">LogiOps</a> com suporte ao modelo; a versão do Ubuntu 24.04 pode ser anterior.</p><p>Evita remapear os mesmos botões simultaneamente no Solaar e no LogiOps.</p></article><article class="system-card full"><h2>O que esta versão permite</h2><p>Botões laterais, clique da roda, botão superior, gestos em quatro direções, atalhos personalizados, DPI, SmartShift e roda lateral. Os cliques principais são geridos nas Definições do Ubuntu. O apoio do polegar do MX Master 4 tem um mapeamento próprio.</p><p>O feedback háptico e o Actions Ring da Logitech não são implementados nesta versão. Os perfis são selecionados manualmente e aplicam-se a todos os ratos com o mesmo nome de modelo. A configuração é guardada no Ubuntu, não na memória interna do rato.</p>${s.diagnostics.map(d=>`<p>• ${esc(d)}</p>`).join('')}<p>O estado «aplicado» confirma que o serviço aceitou o arranque com a configuração. A resposta dos botões deve ser verificada fisicamente.</p><p>Referências: <a href="https://github.com/PixlOne/logiops/wiki/Configuration" target="_blank" rel="noreferrer">Configuração LogiOps</a> · <a href="https://github.com/PixlOne/logiops/wiki/CIDs" target="_blank" rel="noreferrer">Identificadores dos botões</a></p></article></div>`;
+ $('#system-content').innerHTML=`<div class="system-grid"><article class="system-card"><h2>Estado da ligação</h2>${[['Sessão',s.session],['Ambiente',s.desktop],['Ratos detetados',s.devices.length?s.devices.map(d=>d.name).join(', '):'Nenhum'],['Recetor Logitech',s.receiver?'Encontrado':'Não encontrado'],['Solaar',s.solaar?'Instalado':'Não instalado'],['LogiOps',s.logiops?'Instalado':'Não instalado'],['Serviço logid',s.serviceActive?'Ativo':'Inativo'],['Integração MX Studio',s.helperInstalled?'Instalada':'Por instalar']].map(([a,b])=>`<div class="system-line"><span>${a}</span><b>${esc(b)}</b></div>`).join('')}</article><article class="system-card"><h2>Preparar a aplicação</h2><p>A interface funciona sem privilégios. Para aplicar configurações, é necessário instalar o LogiOps e a integração local. O Ubuntu pede a tua palavra-passe ao aplicar.</p><p>Para MX Master 3S, no Ubuntu:</p><pre>sudo apt install logiops solaar\nsudo bash scripts/install-system.sh</pre><p>Executa o segundo comando na pasta deste projeto. Para MX Master 4, usa uma versão recente do <a href="https://github.com/PixlOne/logiops" target="_blank" rel="noreferrer">LogiOps</a> com suporte ao modelo; a versão do Ubuntu 24.04 pode ser anterior.</p><p>Evita remapear os mesmos botões simultaneamente no Solaar e no LogiOps.</p></article><article class="system-card full"><h2>O que esta versão permite</h2><p>Botões laterais, clique da roda, botão superior, gestos em quatro direções, atalhos personalizados, DPI, SmartShift e roda lateral. Os cliques principais são geridos nas Definições do Ubuntu. O apoio do polegar do MX Master 4 tem um mapeamento próprio.</p><p>O feedback háptico e o Actions Ring da Logitech não são implementados nesta versão. Os perfis são selecionados manualmente e aplicam-se a todos os ratos com o mesmo nome de modelo. A configuração é guardada no Ubuntu, não na memória interna do rato.</p>${s.diagnostics.map(d=>`<p>• ${esc(d)}</p>`).join('')}<p>O estado «aplicado» confirma que o serviço aceitou o arranque com a configuração. A resposta dos botões deve ser verificada fisicamente.</p><p>Referências: <a href="https://github.com/PixlOne/logiops/wiki/Configuration" target="_blank" rel="noreferrer">Configuração LogiOps</a> · <a href="https://github.com/PixlOne/logiops/wiki/CIDs" target="_blank" rel="noreferrer">Identificadores dos botões</a></p></article></div>`;
 }
 function mayDiscard(){return !dirty||window.confirm('Tens alterações por guardar. Queres descartá-las?')}
 function preset(kind){
@@ -349,7 +449,10 @@ async function initialize(){
       scene?.setView(view);
     };
   }
-  $('#view-reset').onclick=()=>$('#view-perspective').click();
+  $('#view-reset').onclick=()=>realistic ? modelViewer?.reset() : $('#view-perspective').click();
+  $('#view-realistic').onclick = () => setRealistic(true);
+  $('#view-local').onclick = () => setRealistic(false);
+  window.addEventListener('offline', () => setRealistic(false));
   $$('[data-preset]').forEach(b=>b.onclick=()=>preset(b.dataset.preset));
   $('#reset').onclick=()=>{if(!mayDiscard())return;const name=profile.name;profile=clone(boot.defaults[profile.model]);profile.name=name;markDirty();renderModel();toast('Predefinições preparadas. Aplica para as ativar no rato.')};
   $('#save').onclick = async () => {

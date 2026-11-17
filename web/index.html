@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#e7e8e4">
+  <meta name="theme-color" content="#111315">
+  <script>
+    // Apply the saved theme before the first paint (dark is the default).
+    try { if (localStorage.getItem('mx-studio-theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch {}
+  </script>
   <title>MX Studio</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
@@ -32,9 +36,14 @@
   <main>
     <header class="topbar">
       <div class="breadcrumb"><span id="breadcrumb-section">Dispositivos</span><span id="breadcrumb-context"><span aria-hidden="true">/</span><b id="breadcrumb-model">MX Master</b></span></div>
-      <button id="refresh" class="icon-button" title="Voltar a detetar ratos" aria-label="Voltar a detetar ratos" disabled>
-        <span data-icon="refresh"></span>
-      </button>
+      <div class="topbar-actions">
+        <button id="theme-toggle" class="icon-button" type="button" title="Mudar para tema claro" aria-label="Mudar para tema claro">
+          <span data-icon="sun"></span>
+        </button>
+        <button id="refresh" class="icon-button" title="Voltar a detetar ratos" aria-label="Voltar a detetar ratos" disabled>
+          <span data-icon="refresh"></span>
+        </button>
+      </div>
     </header>
     <div class="content">
       <section id="device-page" aria-labelledby="device-title">
@@ -49,6 +58,8 @@
             <div class="scene-wrap" id="scene-wrap">
               <div id="scene" role="img" aria-label="Modelo 3D do rato. Arrasta para rodar, usa a roda para aproximar ou seleciona um botão na lista."></div>
               <div id="hotspots"></div>
+              <div class="realistic-view" id="realistic-view" hidden></div>
+              <div class="realistic-hotspots" id="realistic-hotspots" hidden></div>
               <div class="stage-head">
                 <div class="stage-title">
                   <h2 id="model-name">MX Master 3S</h2>
@@ -58,7 +69,6 @@
                 <div class="stage-options">
                   <select id="model-select" aria-label="Modelo do rato" disabled>
                     <option value="mx3s">MX Master 3S</option>
-                    <option value="mx3">MX Master 3</option>
                     <option value="mx4">MX Master 4</option>
                   </select>
                   <div class="finish-controls" id="finish-controls" role="group" aria-label="Cor do modelo" hidden>
@@ -74,9 +84,12 @@
                   <button id="view-top" aria-pressed="false">Topo</button>
                   <button id="view-side" aria-pressed="false">Lado</button>
                   <button id="view-reset" title="Repor vista" aria-label="Repor vista"><span data-icon="rotate"></span></button>
+                  <button id="view-local" aria-pressed="false" title="Modelo local com seleção dos botões. Funciona sem Internet.">Local</button>
+                  <button id="view-realistic" aria-pressed="false" title="Modelo texturizado. Precisa de Internet; seleciona os botões na lista.">Realista</button>
                 </div>
               </div>
             </div>
+            <p class="model-credit" id="model-credit" hidden></p>
             <dl class="device-stats">
               <div><dt>Sensibilidade</dt><dd id="dpi-summary">Predefinida</dd></div>
               <div><dt>Roda principal</dt><dd id="scroll-summary">Predefinida</dd></div>

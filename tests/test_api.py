@@ -52,7 +52,8 @@ class ApiTests(unittest.TestCase):
         code, body = self.request('/api/bootstrap')
         result = json.loads(body)
         self.assertEqual(code, 200)
-        self.assertEqual(len(result['models']), 3)
+        self.assertEqual(set(result['models']), {'mx3s', 'mx4'})
+        self.assertEqual(set(result['defaults']), {'mx3s', 'mx4'})
         self.assertEqual(result['status']['devices'], [])
 
     def test_missing_token_and_cross_origin_mutations_denied(self):
@@ -60,6 +61,20 @@ class ApiTests(unittest.TestCase):
             code, _ = self.request('/api/save', default_profile(), **kwargs)
             self.assertEqual(code, 403)
         self.assertFalse((Path(self.temp.name) / 'profiles.json').exists())
+
+    def test_legacy_mx3_profile_is_hidden_and_preserved_when_saving(self):
+        legacy = default_profile('mx3')
+        target = Path(self.temp.name) / 'profiles.json'
+        target.write_text(json.dumps([legacy, default_profile('mx4')]))
+        code, body = self.request('/api/bootstrap')
+        self.assertEqual(code, 200)
+        self.assertEqual([p['model'] for p in json.loads(body)['profiles']], ['mx4'])
+        code, body = self.request('/api/save', default_profile())
+        self.assertEqual(code, 200)
+        self.assertEqual({p['model'] for p in json.loads(body)['profiles']}, {'mx3s', 'mx4'})
+        self.assertIn(legacy, json.loads(target.read_text()))
+        for path in ['/api/save', '/api/export', '/api/apply']:
+            self.assertEqual(self.request(path, legacy)[0], 400)
 
     def test_save_load_and_replace_profile_without_duplicate(self):
         p = default_profile()

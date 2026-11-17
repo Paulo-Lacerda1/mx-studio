@@ -67,7 +67,7 @@ def main():
         state_file = state / 'active.json'
         profiles = json.loads(state_file.read_text()) if state_file.exists() else {}
         profiles[profile['model']] = profile
-        generated = config.compile_config(list(profiles.values()))
+        generated = config.compile_config(list(profiles.values()), allow_legacy=True)
         backup_dir = state / 'backups'
         backup_dir.mkdir(exist_ok=True)
         if old is not None:

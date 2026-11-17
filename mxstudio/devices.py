@@ -9,7 +9,7 @@ from .config import MODELS
 
 def model_from_name(name):
     match = re.search(r'MX\s*Master\s*(3S|3|4)(?!\w)', name, re.I)
-    return {'3s': 'mx3s', '3': 'mx3', '4': 'mx4'}.get(match.group(1).lower()) if match else None
+    return {'3s': 'mx3s', '4': 'mx4'}.get(match.group(1).lower()) if match else None
 
 
 def run(command, timeout=8):
@@ -29,7 +29,9 @@ def parse_solaar(text):
         end = headings[i + 1].start() if i + 1 < len(headings) else len(text)
         body = text[match.end():end]
         # A subsequent numbered non-MX device must not supply this mouse's battery.
-        body = re.split(r'(?m)^\s*\d+:\s+', body)[0]
+        # Device headings are indented at most 2 spaces; deeper numbered lines are the
+        # device's own HID++ feature list (e.g. "8: UNIFIED BATTERY"), which holds the battery.
+        body = re.split(r'(?m)^ {0,3}\d+:\s+', body)[0]
         model = model_from_name(name)
         if not model or re.search(r'(device is offline|device is not online|not responding)', body, re.I):
             continue
