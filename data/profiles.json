@@ -1,0 +1,40 @@
+[
+  {
+    "model": "mx3s",
+    "name": "Captura num clique",
+    "buttons": {
+      "gesture": {
+        "action": "screenshot"
+      }
+    },
+    "dpi": null,
+    "scroll": {
+      "enabled": false,
+      "smartshift": true,
+      "threshold": 30,
+      "hires": true,
+      "invert": false,
+      "thumbInvert": false,
+      "thumbMode": "default"
+    }
+  },
+  {
+    "model": "mx3s",
+    "name": "Pessoal",
+    "buttons": {
+      "gesture": {
+        "action": "screenshot"
+      }
+    },
+    "dpi": null,
+    "scroll": {
+      "enabled": false,
+      "smartshift": true,
+      "threshold": 30,
+      "hires": true,
+      "invert": false,
+      "thumbInvert": false,
+      "thumbMode": "default"
+    }
+  }
+]
