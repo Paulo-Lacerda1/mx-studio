@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=MX Studio
+GenericName=Mouse Settings
+GenericName[pt]=Configuração do rato
+Comment=Configure Logitech MX Master 3S and 4 buttons and profiles
+Comment[pt]=Configura os botões e perfis dos Logitech MX Master 3S e 4
+Exec=/usr/local/bin/mx-studio
+TryExec=/usr/local/bin/mx-studio
+Icon=mx-studio
+Terminal=false
+Categories=Settings;HardwareSettings;
+Keywords=Logitech;MX;mouse;rato;DPI;
+StartupWMClass=mx-studio
+StartupNotify=false

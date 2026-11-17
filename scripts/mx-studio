@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export MX_STUDIO_DATA_DIR="${MX_STUDIO_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mx-studio}"
+mx_state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/mx-studio"
+mkdir -p -- "$MX_STUDIO_DATA_DIR" "$mx_state_dir"
+exec /usr/bin/python3 /usr/local/share/mx-studio/app.py --desktop "$@" >> "$mx_state_dir/app.log" 2>&1

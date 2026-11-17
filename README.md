@@ -18,6 +18,20 @@ O Chrome/Chromium abre uma janela de aplicação. Quando não está instalado, a
 
 Também podes executar `python3 app.py --no-open` e abrir `http://127.0.0.1:48731`. Se a porta estiver ocupada, usa `python3 app.py --port 48732`. Não abras `web/index.html` diretamente: a interface precisa do servidor local.
 
+## Instalar no Ubuntu
+
+Depois de instalar o LogiOps, executa na pasta do projeto:
+
+```bash
+sudo bash scripts/install-system.sh
+```
+
+A instalação cria **MX Studio** no menu de aplicações, com o ícone do projeto. Podes abri-lo pelo menu, fixá-lo nos Favoritos ou executar `mx-studio`. Abre sem terminal e corre como o teu utilizador; a autorização de administrador só é pedida ao aplicar configurações.
+
+A aplicação fica em `/usr/local/share/mx-studio`, o lançador em `/usr/local/bin/mx-studio` e o ícone é instalado no tema `hicolor`. Podes mover a pasta original depois da instalação. Volta a executar o instalador para atualizar os ficheiros da aplicação.
+
+Os perfis da versão instalada ficam em `~/.local/share/mx-studio/profiles.json`, respeitando `XDG_DATA_HOME` ou `MX_STUDIO_DATA_DIR` quando definidos. Os perfis guardados na pasta do projeto mantêm-se em `data/profiles.json`; para os usar na versão instalada, copia esse ficheiro para a pasta de dados do teu utilizador. Os registos ficam em `~/.local/state/mx-studio/app.log` (ou em `XDG_STATE_HOME`). Fechar a janela mantém o servidor local em execução; voltar a abrir pelo menu reutiliza esse servidor.
+
 ## Aplicar configurações no Ubuntu
 
 Para MX Master 3S:
@@ -32,7 +46,7 @@ Para **MX Master 4**, usa uma versão recente do [LogiOps](https://github.com/Pi
 
 Na aplicação, escolhe o rato detetado, personaliza os botões e carrega em **Aplicar ao rato**. A autorização de administrador é pedida pelo `pkexec` do Ubuntu. Guardar um perfil, carregar uma sugestão ou exportar **não altera o rato**.
 
-A instalação copia apenas o auxiliar de aplicação e o validador para uma pasta protegida, pertencente a root. O processo gráfico não corre como administrador. Se alterares `mxstudio/config.py` ou `scripts/apply.py`, volta a executar o instalador para atualizar essas cópias.
+A instalação copia também o auxiliar de aplicação e o validador para `/usr/local/lib/mx-studio`, uma pasta protegida pertencente a root. O processo gráfico não corre como administrador. Se alterares `mxstudio/config.py` ou `scripts/apply.py`, volta a executar o instalador para atualizar essas cópias.
 
 ## Funcionalidades
 
@@ -69,7 +83,7 @@ A ação «Captura de ecrã» lê o atalho atual `org.gnome.shell.keybindings sh
 - Os campos predefinidos são omitidos da configuração. Isso remove remapeamentos desta aplicação, mas não garante uma reposição de todos os valores persistentes do firmware.
 - Um `/etc/logid.cfg` vazio ou apenas com comentários (como o exemplo instalado pelo pacote Ubuntu) é aceite; o original fica numa cópia de segurança. Se contiver uma configuração ativa criada fora desta aplicação, a primeira aplicação continua a ser recusada: exporta e integra manualmente nesse caso.
 
-Os perfis da interface ficam em `data/profiles.json` junto ao projeto. Podes definir outro diretório com `MX_STUDIO_DATA_DIR`. Os perfis aplicados ficam em `/var/lib/mx-studio/active.json`; as cópias anteriores estão em `/var/lib/mx-studio/backups`. O ficheiro do controlador é `/etc/logid.cfg`.
+Ao executar o código-fonte, os perfis da interface ficam em `data/profiles.json` junto ao projeto; na versão instalada, ficam na pasta de dados do utilizador indicada acima. Podes definir outro diretório com `MX_STUDIO_DATA_DIR`. Os perfis aplicados ficam em `/var/lib/mx-studio/active.json`; as cópias anteriores estão em `/var/lib/mx-studio/backups`. O ficheiro do controlador é `/etc/logid.cfg`.
 
 ## Diagnóstico
 
@@ -97,7 +111,7 @@ Python usa apenas a biblioteca padrão. A interface usa módulos JavaScript e Th
 
 Os testes cobrem os modelos, CIDs, DPI, gestos, teclas permitidas, deteção offline/Bluetooth, persistência, exportação, proteção da API e bloqueio de aplicação em pré-visualização. A API é exercitada através do handler HTTP real, com transporte em memória, sem abrir sockets.
 
-**Validação desta alteração:** 43 testes Python passaram, assim como as verificações de sintaxe JavaScript. O controlador da interface foi exercitado com um DOM simulado para verificar a troca dos modelos e créditos, a vista Local, a perda de Internet e a ausência de WebGL. A API também respondeu através do servidor local. A inspeção visual ficou por fazer porque o navegador de inspeção está indisponível; o funcionamento físico dos botões não foi testado.
+**Validação da instalação:** 53 testes Python passaram, incluindo uma instalação numa pasta temporária, presença do ícone e lançador, execução da cópia instalada a partir de outra pasta e reabertura da aplicação já em execução. A sintaxe dos scripts Bash foi verificada. A apresentação no menu do Ubuntu e o funcionamento físico dos botões não foram testados.
 
 ## Referências
 

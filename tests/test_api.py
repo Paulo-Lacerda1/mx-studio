@@ -56,6 +56,15 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(set(result['defaults']), {'mx3s', 'mx4'})
         self.assertEqual(result['status']['devices'], [])
 
+    def test_health_identifies_app_without_device_discovery_or_token(self):
+        code, body = self.request('/api/health', token='')
+        self.assertEqual(code, 200)
+        self.assertEqual(json.loads(body), {'application': 'mx-studio'})
+        app.status.assert_not_called()
+
+    def test_health_still_rejects_foreign_host(self):
+        self.assertEqual(self.request('/api/health', host='evil.example:48731')[0], 403)
+
     def test_missing_token_and_cross_origin_mutations_denied(self):
         for kwargs in [{'token': ''}, {'origin': 'https://example.org'}, {'host': 'evil.example:48731'}]:
             code, _ = self.request('/api/save', default_profile(), **kwargs)

@@ -11,6 +11,8 @@ import subprocess
 import threading
 import time
 import webbrowser
+from urllib.error import URLError
+from urllib.request import urlopen
 
 from mxstudio.config import MODELS, BUTTONS, ACTIONS, default_profile, validate_profile, compile_config
 from mxstudio.devices import discover
@@ -87,6 +89,8 @@ class Handler(SimpleHTTPRequestHandler):
         if not self.local_request():
             return self.respond({'error': 'Origem não autorizada.'}, 403)
         try:
+            if self.path == '/api/health':
+                return self.respond({'application': 'mx-studio'})
             if self.path == '/api/bootstrap':
                 return self.respond({'token': TOKEN, 'models': MODELS, 'buttons': BUTTONS,
                                      'actions': [{'id': a[0], 'label': a[1], 'group': a[2], 'keys': a[3]} for a in ACTIONS],
@@ -139,14 +143,35 @@ class Handler(SimpleHTTPRequestHandler):
             self.respond({'error': str(e)}, 400)
 
 
+def open_window(url):
+    chrome = shutil.which('google-chrome') or shutil.which('chromium') or shutil.which('chromium-browser')
+    if chrome:
+        subprocess.Popen([chrome, f'--app={url}', '--class=mx-studio', '--window-size=1440,950'],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    else:
+        webbrowser.open(url)
+
+
+def running_app(url):
+    try:
+        with urlopen(url + '/api/health', timeout=2) as response:
+            return json.loads(response.read(512)) == {'application': 'mx-studio'}
+    except (OSError, URLError, ValueError):
+        return False
+
+
 def main():
     parser = argparse.ArgumentParser(description='MX Studio — configuração do rato no Ubuntu')
     parser.add_argument('--port', type=int, default=48731)
     parser.add_argument('--no-open', action='store_true')
+    parser.add_argument('--desktop', action='store_true', help='Reutiliza a aplicação quando já está aberta')
     args = parser.parse_args()
     try:
         server = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
     except OSError as error:
+        if args.desktop and not args.no_open and running_app(f'http://127.0.0.1:{args.port}'):
+            open_window(f'http://127.0.0.1:{args.port}')
+            return
         parser.exit(1, f'Não foi possível abrir o servidor local na porta {args.port}: {error}\nSe a porta estiver ocupada, usa --port 48732.\n')
     url = f'http://127.0.0.1:{server.server_port}'
     print(f'MX Studio: {url}', flush=True)
@@ -154,11 +179,7 @@ def main():
     # first /api/bootstrap then waits on (or reuses) this result instead of starting from zero.
     threading.Thread(target=status, daemon=True).start()
     if not args.no_open:
-        chrome = shutil.which('google-chrome') or shutil.which('chromium')
-        if chrome:
-            subprocess.Popen([chrome, f'--app={url}', '--window-size=1440,950'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        else:
-            webbrowser.open(url)
+        open_window(url)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
