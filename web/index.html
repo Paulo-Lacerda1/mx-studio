@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f3f4f4">
+  <meta name="theme-color" content="#e7e8e4">
   <title>MX Studio</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
@@ -46,29 +46,35 @@
 
         <div class="workspace">
           <section class="device-card" aria-labelledby="model-name">
-            <div class="device-card-top">
-              <div>
-                <h2 id="model-name">MX Master 3S</h2>
-                <div class="device-connection"><span id="connection-badge" class="connection-state">Pré-visualização</span><span id="connection-detail"></span></div>
-              </div>
-              <select id="model-select" aria-label="Modelo do rato" disabled>
-                <option value="mx3s">MX Master 3S</option>
-                <option value="mx3">MX Master 3</option>
-                <option value="mx4">MX Master 4</option>
-              </select>
-            </div>
             <div class="scene-wrap" id="scene-wrap">
-              <div id="scene" role="img" aria-label="Modelo 3D ilustrativo do rato. Arrasta para rodar ou seleciona um botão na lista."></div>
+              <div id="scene" role="img" aria-label="Modelo 3D do rato. Arrasta para rodar, usa a roda para aproximar ou seleciona um botão na lista."></div>
               <div id="hotspots"></div>
-              <div class="scene-label" id="scene-selection" hidden><span class="number" id="scene-number"></span><span id="scene-label"></span></div>
-            </div>
-            <div class="scene-toolbar" id="scene-toolbar" hidden>
-              <span class="scene-hint">Arrasta para rodar · Usa a roda para aproximar</span>
-              <div class="view-controls" role="group" aria-label="Vista do modelo">
-                <button id="view-perspective" class="active" aria-pressed="true">3D</button>
-                <button id="view-top" aria-pressed="false">Topo</button>
-                <button id="view-side" aria-pressed="false">Lado</button>
-                <button id="view-reset" title="Repor vista" aria-label="Repor vista"><span data-icon="rotate"></span></button>
+              <div class="stage-head">
+                <div class="stage-title">
+                  <h2 id="model-name">MX Master 3S</h2>
+                  <div class="device-connection"><span id="connection-badge" class="connection-state">Pré-visualização</span><span id="connection-detail"></span></div>
+                  <p class="stage-dims" id="model-dims">124,9 × 84,3 × 51 mm</p>
+                </div>
+                <div class="stage-options">
+                  <select id="model-select" aria-label="Modelo do rato" disabled>
+                    <option value="mx3s">MX Master 3S</option>
+                    <option value="mx3">MX Master 3</option>
+                    <option value="mx4">MX Master 4</option>
+                  </select>
+                  <div class="finish-controls" id="finish-controls" role="group" aria-label="Cor do modelo" hidden>
+                    <button data-finish="graphite" aria-pressed="true" title="Grafite"><span class="swatch graphite" aria-hidden="true"></span>Grafite</button>
+                    <button data-finish="pale" aria-pressed="false" title="Cinza claro"><span class="swatch pale" aria-hidden="true"></span>Cinza claro</button>
+                  </div>
+                </div>
+              </div>
+              <div class="stage-foot">
+                <div class="scene-label" id="scene-selection" hidden><span class="number" id="scene-number"></span><span id="scene-label"></span></div>
+                <div class="view-controls" id="scene-toolbar" role="group" aria-label="Vista do modelo" hidden>
+                  <button id="view-perspective" class="active" aria-pressed="true">3D</button>
+                  <button id="view-top" aria-pressed="false">Topo</button>
+                  <button id="view-side" aria-pressed="false">Lado</button>
+                  <button id="view-reset" title="Repor vista" aria-label="Repor vista"><span data-icon="rotate"></span></button>
+                </div>
               </div>
             </div>
             <dl class="device-stats">

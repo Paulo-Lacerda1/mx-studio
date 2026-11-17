@@ -6,6 +6,12 @@ function icons(root=document){root.querySelectorAll('[data-icon]').forEach(e=>{e
 icons();
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clone=v=>structuredClone(v);
+// Published dimensions (length × width × height) and weight.
+const DIMENSIONS = {mx3: '124,9 × 84,3 × 51 mm, 141 g', mx3s: '124,9 × 84,3 × 51 mm, 141 g', mx4: '128,2 × 88,4 × 50,8 mm, 150 g'};
+const storage = {
+  get(key) { try { return localStorage.getItem(key); } catch { return null; } },
+  set(key, value) { try { localStorage.setItem(key, value); } catch { /* optional */ } },
+};
 let boot, profile, selected = 'gesture', scene, dirty = false, exported = '', busy = false, recording, toastTimer;
 const label=id=>boot.actions.find(a=>a.id===id)?.label || (id==='gestures'?'Gestos direcionais':'Predefinição');
 const buttons=()=>boot.buttons.filter(b=>!b.model||b.model===profile.model);
@@ -63,6 +69,7 @@ function renderModel() {
   if (!buttons().some(button => button.id === selected)) selected = 'gesture';
   const model = boot.models[profile.model];
   $('#model-name').textContent = model.label;
+  $('#model-dims').textContent = DIMENSIONS[profile.model] || '';
   $('#breadcrumb-model').textContent = model.label;
   $('#model-select').value = profile.model;
   $('#profile-name').value = profile.name;
@@ -295,6 +302,14 @@ async function initialize(){
   try {
     scene = new MouseScene($('#scene'), $('#hotspots'), selectButton);
     $('#scene-toolbar').hidden = false;
+    $('#finish-controls').hidden = false;
+    const setFinish = finish => {
+      scene.setFinish(finish);
+      storage.set('mx-studio-finish', finish);
+      $$('[data-finish]').forEach(button => button.setAttribute('aria-pressed', button.dataset.finish === finish));
+    };
+    setFinish(storage.get('mx-studio-finish') === 'pale' ? 'pale' : 'graphite');
+    $$('[data-finish]').forEach(button => { button.onclick = () => setFinish(button.dataset.finish); });
   } catch (error) {
     console.error(error);
     $('#scene').innerHTML = '<p class="no-webgl"><strong>Vista 3D indisponível</strong><span>Seleciona um botão na lista para o configurar.</span></p>';

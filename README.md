@@ -37,7 +37,7 @@ A instalação copia apenas o auxiliar de aplicação e o validador para uma pas
 | Área | Disponível |
 | --- | --- |
 | Deteção | Linux HID e consulta ao Solaar; Bluetooth e recetor, quando o modelo é identificável |
-| 3D | Rotação, zoom, vistas topo/lado e seleção de botões; representação ilustrativa criada em geometria |
+| 3D | Modelo procedural às medidas reais (3/3S: 124,9 × 84,3 × 51 mm; 4: 128,2 × 88,4 × 50,8 mm), materiais PBR, acabamento Grafite ou Cinza claro, rotação, zoom, vistas topo/lado e seleção de botões no próprio modelo |
 | Botões | Clique da roda, superior, recuar, avançar, gestos; apoio do polegar adicional no MX Master 4 |
 | Ações | Captura de ecrã, janelas, áreas de trabalho, edição, separadores, multimédia e atalhos personalizados |
 | Gestos | Clique sem movimento e quatro direções; ações ao soltar |
@@ -54,7 +54,7 @@ A ação «Captura de ecrã» lê o atalho atual `org.gnome.shell.keybindings sh
 ## Limites e comportamento
 
 - A pré-visualização nunca é apresentada como um rato ligado. Um recetor genérico não chega para identificar o modelo. Uma bateria desconhecida não é estimada.
-- Os três modelos têm mapas de controlo; o MX Master 4 inclui o CID `0x01a0`. O corpo 3D é ilustrativo, não é um modelo CAD oficial; 3 e 3S partilham a geometria principal.
+- Os três modelos têm mapas de controlo; o MX Master 4 inclui o CID `0x01a0`. O corpo 3D é reconstruído a partir das medidas publicadas e de fotografias; não é um modelo CAD oficial. 3 e 3S partilham a geometria; o MX Master 4 tem o botão de gestos à frente de recuar/avançar e o painel háptico no apoio do polegar.
 - Não estão implementados feedback háptico, Actions Ring, Logitech Flow, perfis automáticos por aplicação ou escrita na memória interna do rato.
 - As capacidades de cada botão dependem do firmware e do LogiOps. Esta versão usa os mapas documentados, não interroga todas as capacidades HID++ em tempo real.
 - Os nomes usados pelo controlador são `Wireless Mouse MX Master 3`, `MX Master 3S` e `MX Master 4`. Variantes com outro nome de dispositivo, incluindo algumas versões «for Mac», podem precisar de um nome adicional no compilador.
